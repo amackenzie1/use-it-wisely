@@ -1,8 +1,8 @@
 // projection-logic.ts
 
-import { Projection, OneOffExpense } from './data-types'
-import { calculateTax, calculateOASClawback, findRequiredTotalWithdrawalThreeWay } from './utils'
-
+import { Projection, OneOffExpense, Province } from './data-types'
+import { calculateOASClawback, findRequiredTotalWithdrawalThreeWay } from './utils'
+import { calculateTax } from './tax'
 export const ProjectionLogic = {
   createInitialProjection(
     startYear: number,
@@ -28,7 +28,8 @@ export const ProjectionLogic = {
     stageTwoHealthcare: number,
     stageThreeExpenses: number,
     stageThreeHealthcare: number,
-    oneOffExpenses: OneOffExpense[] = []
+    oneOffExpenses: OneOffExpense[] = [],
+    province: Province
   ): Projection {
     const totalYears = lifeExpectancy - currentAge;
     const projection: Projection = [];
@@ -102,6 +103,7 @@ export const ProjectionLogic = {
 
         employmentIncome: yearlyIncomes[i] || 0,
         otherIncomes: [],
+        province: province,
       });
     }
     return projection;
@@ -152,6 +154,7 @@ export const ProjectionLogic = {
     const rrifGrowth = thisYear.amountInRRIF * (incomeRate + growthRate);
     const liraGrowth = thisYear.amountInLIRA * (incomeRate + growthRate);
     const lifGrowth = thisYear.amountInLIF * (incomeRate + growthRate);
+    const province = thisYear.province;
 
     thisYear.amountInvested += nonRegGrowth;
     thisYear.amountInRRSP += rrspGrowth;
@@ -159,6 +162,7 @@ export const ProjectionLogic = {
     thisYear.amountInRRIF += rrifGrowth;
     thisYear.amountInLIRA += liraGrowth;
     thisYear.amountInLIF += lifGrowth;
+    thisYear.province = province;
 
     // Investment income from non-registered
     const investmentIncome = thisYear.amountInvested * incomeRate;
@@ -175,7 +179,7 @@ export const ProjectionLogic = {
 
     // Calculate initial tax
     const initialTaxableIncome = thisYear.salary + investmentIncome;
-    const initialTax = calculateTax(initialTaxableIncome);
+    const initialTax = calculateTax(initialTaxableIncome, thisYear.province);
     const totalDebit = totalExpenses + initialTax;
 
     // OAS Clawback
@@ -239,7 +243,8 @@ export const ProjectionLogic = {
         thisYear.amountInRRSP,
         thisYear.amountInRRIF,
         totalExpenses,
-        thisYear.age
+        thisYear.age,
+        thisYear.province
       );
 
       // Recalculate taxes based on that actual withdrawal
@@ -252,7 +257,7 @@ export const ProjectionLogic = {
       }
 
       const ordinaryIncome = thisYear.salary + fromRRSP + fromRRIF;
-      const totalTax = calculateTax(cgTaxable) + calculateTax(ordinaryIncome);
+      const totalTax = calculateTax(cgTaxable, thisYear.province) + calculateTax(ordinaryIncome, thisYear.province);
       const finalDebits = totalExpenses + totalTax;
       const finalCredits = (thisYear.salary + totalWithdrawal) + oasAfterClawback;
 
@@ -297,7 +302,7 @@ export const ProjectionLogic = {
         const realizedGain = withdrawalAmount - costBasisUsed;
         cgTaxable = realizedGain > 0 ? realizedGain * 0.5 : 0;
       }
-      const taxOnWithdrawal = calculateTax(cgTaxable);
+      const taxOnWithdrawal = calculateTax(cgTaxable, yearOne.province);
 
       yearOne.debits += withdrawalAmount + taxOnWithdrawal;
       yearOne.amountInvested -= withdrawalAmount;

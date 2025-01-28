@@ -87,6 +87,8 @@ export interface YearData {
   // New fields for income tracking
   employmentIncome: number
   otherIncomes: OtherIncome[]
+
+  province: Province
 }
 
 export type Projection = YearData[]

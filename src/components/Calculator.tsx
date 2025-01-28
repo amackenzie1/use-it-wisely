@@ -293,7 +293,8 @@ const Calculator: React.FC = () => {
       stageTwoHealthcare,
       stageThreeExpenses,
       stageThreeHealthcare,
-      oneOffExpenses
+      oneOffExpenses,
+      province
     )
 
     // Estate goal net of deathBenefit

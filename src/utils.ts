@@ -1,13 +1,8 @@
 // utils.ts
+import { Province } from './data-types'
+import { calculateTax } from './tax'
 
-const COMBINED_TAX_BRACKETS = [
-  { bracketUpTo: 15000, rate: 0.15 },
-  { bracketUpTo: 50000, rate: 0.25 },
-  { bracketUpTo: 100000, rate: 0.35 },
-  { bracketUpTo: Infinity, rate: 0.45 },
-]
-
-const OAS_CLAWBACK = {
+export const OAS_CLAWBACK = {
   THRESHOLD: 90997,
   RATE: 0.15,
 }
@@ -15,25 +10,7 @@ const OAS_CLAWBACK = {
 /**
  * Calculate progressive tax on given income.
  */
-export function calculateTax(taxableIncome: number): number {
-  if (taxableIncome <= 0) return 0
 
-  let remaining = taxableIncome
-  let totalTax = 0
-  let prevBracketEnd = 0
-
-  for (const bracket of COMBINED_TAX_BRACKETS) {
-    const bracketSize = bracket.bracketUpTo - prevBracketEnd
-    const amountAtThisRate = Math.min(remaining, bracketSize)
-    totalTax += amountAtThisRate * bracket.rate
-
-    remaining -= amountAtThisRate
-    prevBracketEnd = bracket.bracketUpTo
-    if (remaining <= 0) break
-  }
-
-  return totalTax
-}
 
 /**
  * Calculate OAS clawback based on net income above threshold.
@@ -69,7 +46,8 @@ export function findRequiredTotalWithdrawalThreeWay(
   rrspBalance: number,
   rrifBalance: number,
   expenses: number,
-  age: number
+  age: number,
+  province: Province
 ): {
   totalWithdrawal: number
   fromNonReg: number
@@ -113,8 +91,9 @@ export function findRequiredTotalWithdrawalThreeWay(
       cgTaxable = realizedGain > 0 ? realizedGain * 0.5 : 0
     }
 
-    const cgTax = calculateTax(cgTaxable)
-    const ordinaryTax = calculateTax(salary + fromRRSP + fromRRIF)
+
+    const cgTax = calculateTax(cgTaxable, province)
+    const ordinaryTax = calculateTax(salary + fromRRSP + fromRRIF, province)
     const totalTax = cgTax + ordinaryTax
 
     const debits = expenses + totalTax
