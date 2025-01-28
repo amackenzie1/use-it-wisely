@@ -1,10 +1,9 @@
 import React from 'react'
-import Calculator from './components/Calculator'
-
+import JSONCalculatorPage from './JSONCalculatorPage'
 function App() {
   return (
     <div className="App">
-      <Calculator />
+      <JSONCalculatorPage />
     </div>
   )
 }

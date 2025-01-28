@@ -338,6 +338,7 @@ export const ProjectionLogic = {
     let bestWithdrawal = 0;
     let bestFinalBalance = Infinity;
     const TOLERANCE = 1000;
+    const MIN_BALANCE = 50000;
     const MAX_ITERATIONS = 30;
     let iterations = 0;
 
@@ -356,7 +357,7 @@ export const ProjectionLogic = {
       for (let i = 0; i < finalProjection.length - 1; i++) {
         const year = finalProjection[i];
         const yearBalance = year.amountInvested + year.amountInRRSP + year.amountInTFSA;
-        if (yearBalance <= TOLERANCE) {
+        if (yearBalance <= MIN_BALANCE) {
           isValidProjection = false;
           break;
         }

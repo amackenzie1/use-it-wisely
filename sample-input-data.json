@@ -1,0 +1,58 @@
+{
+    "currentAge": 35,
+    "province": "ON",
+    "lifeExpectancy": 95,
+  
+    "employmentIncome": 50000,
+    "employmentIncomeStartYear": 2024,
+    "employmentIncomeEndYear": 2024,
+  
+    "otherIncomes": [],
+  
+    "annualExpenses": 50000,
+    "annualHealthcareExpenses": 0,
+    "useStages": false,
+    "stageOneExpenses": 50000,
+    "stageOneHealthcare": 0,
+    "stageTwoExpenses": 45000,
+    "stageTwoHealthcare": 5000,
+    "stageThreeExpenses": 40000,
+    "stageThreeHealthcare": 10000,
+  
+    "initialInvestment": 500000,
+    "initialBookValue": 500000,
+    "startYear": 2024,
+  
+    "registeredAccounts": [
+      { "type": "RRSP", "amount": 10000 },
+      { "type": "TFSA", "amount": 20000 }
+    ],
+  
+    "willSellHome": false,
+    "homeSaleYear": 2030,
+    "homeSaleAmount": 500000,
+  
+    "rateOfReturn": 7,
+    "specifyOwnRates": false,
+    "incomeRate": 3,
+    "growthRate": 3,
+    "inflationRate": 2,
+  
+    "isReceivingOAS": false,
+    "oasStartAge": 65,
+    "oasAnnualAmount": 8301,
+  
+    "isReceivingCPP": false,
+    "cppStartAge": 65,
+    "cppAnnualAmount": 15000,
+  
+    "isReceivingDB": false,
+    "dbStartAge": 65,
+    "dbAnnualAmount": 0,
+  
+    "oneOffExpenses": [],
+  
+    "estateGoal": 0,
+    "deathBenefit": 0
+  }
+  
