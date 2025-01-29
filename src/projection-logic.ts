@@ -1,6 +1,6 @@
 // projection-logic.ts
 
-import { Projection, OneOffExpense, Province } from './data-types'
+import { Projection, OneOffExpense, Province } from './types'
 import { calculateOASClawback, findRequiredTotalWithdrawalThreeWay } from './utils'
 import { calculateTax } from './tax'
 export const ProjectionLogic = {

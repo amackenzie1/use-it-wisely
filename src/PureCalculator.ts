@@ -1,6 +1,5 @@
 // calculateProjection.ts
-import { CalculatorInputData } from './types'
-import { Projection } from './data-types'
+import { CalculatorInputData, Projection } from './types'
 import { ProjectionLogic } from './projection-logic'
 
 interface CalculateProjectionResult {
