@@ -3,6 +3,7 @@
 import { Projection, OneOffExpense, Province } from './types'
 import { calculateOASClawback, findRequiredTotalWithdrawalThreeWay } from './utils'
 import { calculateTax } from './tax'
+
 export const ProjectionLogic = {
   createInitialProjection(
     startYear: number,
@@ -30,12 +31,12 @@ export const ProjectionLogic = {
     stageThreeHealthcare: number,
     oneOffExpenses: OneOffExpense[] = [],
     province: Province
-  ): Projection {
+  ) {
     const totalYears = lifeExpectancy - currentAge;
     const projection: Projection = [];
 
     for (let i = 1; i <= totalYears; i++) {
-      const isHomeSaleYear = homeSaleYear === i;
+      const isHomeSaleYear = (homeSaleYear === i);
       const personAge = currentAge + i - 1;
 
       let yearlyExpenses = baseAnnualExpenses;
@@ -103,15 +104,28 @@ export const ProjectionLogic = {
 
         employmentIncome: yearlyIncomes[i] || 0,
         otherIncomes: [],
-        province: province,
+
+        province
       });
     }
     return projection;
   },
 
-  calculateNextYear(projection, yearIndex, incomeRate, growthRate) {
-    const RRSP_MAX = 30000;
-    const TFSA_MAX = 30000;
+  calculateNextYear(
+    projection: Projection,
+    yearIndex: number,
+    incomeRate: number,
+    growthRate: number,
+    rrspMaxMultiplier: number,
+    tfsaMaxMultiplier: number
+  ) {
+    // Example: default base limits
+    const BASE_RRSP_MAX = 30000;
+    const BASE_TFSA_MAX = 30000;
+
+    // If hasSpouse, we can double them, etc.
+    const RRSP_MAX = BASE_RRSP_MAX * rrspMaxMultiplier;
+    const TFSA_MAX = BASE_TFSA_MAX * tfsaMaxMultiplier;
 
     const thisYear = projection[yearIndex];
     const nextYear = (yearIndex + 1 < projection.length)
@@ -147,14 +161,13 @@ export const ProjectionLogic = {
       }
     }
 
-    // Growth
+    // Growth (very simplified: invests over the entire year, no partial-year)
     const nonRegGrowth = thisYear.amountInvested * growthRate;
     const rrspGrowth = thisYear.amountInRRSP * (incomeRate + growthRate);
     const tfsaGrowth = thisYear.amountInTFSA * (incomeRate + growthRate);
     const rrifGrowth = thisYear.amountInRRIF * (incomeRate + growthRate);
     const liraGrowth = thisYear.amountInLIRA * (incomeRate + growthRate);
     const lifGrowth = thisYear.amountInLIF * (incomeRate + growthRate);
-    const province = thisYear.province;
 
     thisYear.amountInvested += nonRegGrowth;
     thisYear.amountInRRSP += rrspGrowth;
@@ -162,13 +175,12 @@ export const ProjectionLogic = {
     thisYear.amountInRRIF += rrifGrowth;
     thisYear.amountInLIRA += liraGrowth;
     thisYear.amountInLIF += lifGrowth;
-    thisYear.province = province;
 
     // Investment income from non-registered
     const investmentIncome = thisYear.amountInvested * incomeRate;
     thisYear.investmentIncome = investmentIncome;
 
-    // LIRA & LIF payouts if age > 65 (simplified)
+    // LIRA & LIF payouts if age > 65 (example logic)
     if (thisYear.age > 65) {
       const liraPayout = thisYear.amountInLIRA * 0.08;
       const lifPayout = thisYear.amountInLIF * 0.06;
@@ -177,28 +189,30 @@ export const ProjectionLogic = {
       thisYear.salary += (liraPayout + lifPayout);
     }
 
-    // Calculate initial tax
+    // 1) initial tax on salary+investment
     const initialTaxableIncome = thisYear.salary + investmentIncome;
     const initialTax = calculateTax(initialTaxableIncome, thisYear.province);
     const totalDebit = totalExpenses + initialTax;
 
-    // OAS Clawback
+    // 2) OAS Clawback
     const { clawback, oasAfterClawback } = calculateOASClawback(initialTaxableIncome, thisYear.oasIncome);
     thisYear.oasClawback = clawback;
     thisYear.oasAfterClawback = oasAfterClawback;
 
+    // 3) Surplus or deficit
     const availableCash = initialTaxableIncome + oasAfterClawback;
     const surplusOrDeficit = availableCash - totalDebit;
 
     if (surplusOrDeficit >= 0) {
       // Surplus
-      thisYear.credits = initialTaxableIncome + oasAfterClawback;
-      thisYear.debits = totalExpenses + initialTax;
+      thisYear.credits = availableCash;
+      thisYear.debits = totalDebit;
       thisYear.taxPaid = initialTax;
       const surplus = surplusOrDeficit;
 
+      // Move surplus forward
       if (nextYear) {
-        // Additional contributions
+        // additional contributions
         const rrspAfterGrowth = thisYear.amountInRRSP;
         const tfsaAfterGrowth = thisYear.amountInTFSA;
 
@@ -220,7 +234,6 @@ export const ProjectionLogic = {
 
         nextYear.investmentCostBasis = thisYear.investmentCostBasis + toNonReg;
         nextYear.rrspCostBasis = thisYear.rrspCostBasis + toRRSP;
-
         nextYear.amountInLIRA = thisYear.amountInLIRA;
         nextYear.amountInLIF = thisYear.amountInLIF;
       }
@@ -229,6 +242,7 @@ export const ProjectionLogic = {
     } else {
       // Deficit
       const needed = -surplusOrDeficit;
+      // figure out how to cover from nonReg, TFSA, RRSP, RRIF, etc.
       const {
         totalWithdrawal,
         fromNonReg,
@@ -247,7 +261,7 @@ export const ProjectionLogic = {
         thisYear.province
       );
 
-      // Recalculate taxes based on that actual withdrawal
+      // Recalculate taxes with realized capital gains + RRSP withdrawals
       let cgTaxable = 0;
       if (fromNonReg > 0) {
         const proportion = fromNonReg / thisYear.amountInvested;
@@ -257,7 +271,8 @@ export const ProjectionLogic = {
       }
 
       const ordinaryIncome = thisYear.salary + fromRRSP + fromRRIF;
-      const totalTax = calculateTax(cgTaxable, thisYear.province) + calculateTax(ordinaryIncome, thisYear.province);
+      const totalTax = calculateTax(cgTaxable, thisYear.province)
+                     + calculateTax(ordinaryIncome, thisYear.province);
       const finalDebits = totalExpenses + totalTax;
       const finalCredits = (thisYear.salary + totalWithdrawal) + oasAfterClawback;
 
@@ -268,6 +283,7 @@ export const ProjectionLogic = {
       thisYear.tfsaWithdrawal = fromTFSA;
       thisYear.rrifWithdrawal = fromRRIF;
 
+      // Move forward new balances
       if (nextYear) {
         nextYear.amountInvested = thisYear.amountInvested - fromNonReg;
         if (fromNonReg > 0) {
@@ -289,8 +305,15 @@ export const ProjectionLogic = {
     }
   },
 
-  calculateProjection(projection, incomeRate, growthRate, lumpSumWithdrawal=0) {
-    // Lump sum withdrawal in first year if needed
+  calculateProjection(
+    projection: Projection,
+    incomeRate: number,
+    growthRate: number,
+    lumpSumWithdrawal: number,
+    rrspMaxMultiplier: number,
+    tfsaMaxMultiplier: number
+  ) {
+    // Lump sum withdrawal in the first year if needed
     if (projection.length > 0 && lumpSumWithdrawal > 0) {
       const yearOne = projection[0];
       const withdrawalAmount = Math.min(yearOne.amountInvested, lumpSumWithdrawal);
@@ -304,34 +327,43 @@ export const ProjectionLogic = {
       }
       const taxOnWithdrawal = calculateTax(cgTaxable, yearOne.province);
 
-      yearOne.debits += withdrawalAmount + taxOnWithdrawal;
+      yearOne.debits += (withdrawalAmount + taxOnWithdrawal);
       yearOne.amountInvested -= withdrawalAmount;
-      yearOne.investmentCostBasis -= (withdrawalAmount > 0)
-        ? (yearOne.investmentCostBasis * (withdrawalAmount / (withdrawalAmount + taxOnWithdrawal)))
-        : 0;
+      if (withdrawalAmount > 0) {
+        const proportion = withdrawalAmount / (withdrawalAmount + taxOnWithdrawal);
+        yearOne.investmentCostBasis -= (yearOne.investmentCostBasis * proportion);
+      }
       yearOne.taxPaid += taxOnWithdrawal;
     }
 
+    // Loop over each year and calculate
     for (let i = 0; i < projection.length - 1; i++) {
-      this.calculateNextYear(projection, i, incomeRate, growthRate);
+      this.calculateNextYear(
+        projection,
+        i,
+        incomeRate,
+        growthRate,
+        rrspMaxMultiplier,
+        tfsaMaxMultiplier
+      );
     }
 
     return projection;
   },
 
-  formatMoney(amount: number): string {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  },
-
-  findOptimalWithdrawal(baseProjection, incomeRate, growthRate, targetEstate=0) {
+  findOptimalWithdrawal(
+    baseProjection: Projection,
+    incomeRate: number,
+    growthRate: number,
+    targetEstate: number,
+    rrspMaxMultiplier: number,
+    tfsaMaxMultiplier: number
+  ) {
+    // We'll do a binary search for the best lumpsum in year 1
     const initialYear = baseProjection[0];
     const totalAssets = initialYear.amountInvested +
-                        initialYear.amountInRRSP +
-                        initialYear.amountInTFSA;
+      initialYear.amountInRRSP +
+      initialYear.amountInTFSA;
 
     let low = 0;
     let high = totalAssets;
@@ -345,35 +377,44 @@ export const ProjectionLogic = {
     while (high - low > TOLERANCE && iterations < MAX_ITERATIONS) {
       iterations++;
       const mid = (low + high) / 2;
+      // deep clone
       const testProjection = JSON.parse(JSON.stringify(baseProjection));
       const finalProjection = this.calculateProjection(
         testProjection,
         incomeRate,
         growthRate,
-        mid
+        mid,
+        rrspMaxMultiplier,
+        tfsaMaxMultiplier
       );
 
+      // Check if year-by-year balance is feasible
       let isValidProjection = true;
       for (let i = 0; i < finalProjection.length - 1; i++) {
         const year = finalProjection[i];
-        const yearBalance = year.amountInvested + year.amountInRRSP + year.amountInTFSA;
+        const yearBalance = (year.amountInvested + year.amountInRRSP + year.amountInTFSA);
         if (yearBalance <= MIN_BALANCE) {
           isValidProjection = false;
           break;
         }
       }
 
+      // final balance
       const lastYear = finalProjection[finalProjection.length - 1];
       const finalBalance = lastYear.amountInvested + lastYear.amountInRRSP + lastYear.amountInTFSA;
 
       if (isValidProjection) {
-        if (bestWithdrawal === 0 ||
-            Math.abs(finalBalance - targetEstate) < Math.abs(bestFinalBalance - targetEstate)) {
+        // Check how close finalBalance is to targetEstate
+        if (
+          bestWithdrawal === 0 ||
+          Math.abs(finalBalance - targetEstate) < Math.abs(bestFinalBalance - targetEstate)
+        ) {
           bestWithdrawal = mid;
           bestFinalBalance = finalBalance;
         }
       }
 
+      // refine search
       if (!isValidProjection || finalBalance < targetEstate) {
         high = mid;
       } else {
@@ -385,5 +426,13 @@ export const ProjectionLogic = {
       maxWithdrawal: bestWithdrawal,
       finalBalance: bestFinalBalance
     };
+  },
+
+  formatMoney(amount: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    }).format(amount);
   },
 };

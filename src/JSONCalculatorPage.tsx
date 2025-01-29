@@ -50,13 +50,13 @@ const JSONCalculatorPage: React.FC = () => {
   }
 
   // Convert your projection rows into something Recharts can display
-  // For example, let's show a "total assets" line over time:
   const chartData = projection.map((row: any) => {
     const totalAssets =
       row.amountInvested + row.amountInRRSP + row.amountInTFSA
     return {
       year: row.calendarYear, // x-axis
       totalAssets, // y-axis
+      rrsp: row.amountInRRSP, // adding RRSP data
     }
   })
 
@@ -108,6 +108,14 @@ const JSONCalculatorPage: React.FC = () => {
                     dataKey="totalAssets"
                     stroke="#8884d8"
                     strokeWidth={2}
+                    name="Total Assets"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="rrsp"
+                    stroke="#82ca9d"
+                    strokeWidth={2}
+                    name="RRSP"
                   />
                 </LineChart>
               </ResponsiveContainer>
