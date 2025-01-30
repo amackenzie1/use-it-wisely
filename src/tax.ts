@@ -1,4 +1,4 @@
-import { Province } from "./data-types"
+import { Province } from "./types"
 
 // Interface for tax brackets
 interface TaxBracket {

@@ -1,0 +1,110 @@
+{
+    "currentAge": 35,
+    "province": "ON",
+    "lifeExpectancy": 95,
+  
+    "employmentIncome": 80000,
+    "employmentIncomeStartYear": 2024,
+    "employmentIncomeEndYear": 2070,
+  
+    "otherIncomes": [],
+  
+    "annualExpenses": 50000,
+    "annualHealthcareExpenses": 5000,
+    "useStages": true,
+    "stageOneExpenses": 50000,
+    "stageOneHealthcare": 5000,
+    "stageTwoExpenses": 45000,
+    "stageTwoHealthcare": 7000,
+    "stageThreeExpenses": 40000,
+    "stageThreeHealthcare": 10000,
+  
+    "initialInvestment": 0,
+    "initialBookValue": 0,
+    "startYear": 2024,
+  
+    "registeredAccounts": [
+      { "type": "RRSP", "amount": 0 },
+      { "type": "TFSA", "amount": 0 }
+    ],
+  
+    "willSellHome": false,
+    "homeSaleYear": 2045,
+    "homeSaleAmount": 200000,
+  
+    "rateOfReturn": 7,
+    "specifyOwnRates": false,
+    "incomeRate": 3,
+    "growthRate": 3,
+    "inflationRate": 2,
+  
+    "isReceivingOAS": false,
+    "oasStartAge": 65,
+    "oasAnnualAmount": 8301,
+  
+    "isReceivingCPP": false,
+    "cppStartAge": 65,
+    "cppAnnualAmount": 15000,
+  
+    "isReceivingDB": false,
+    "dbStartAge": 65,
+    "dbAnnualAmount": 0,
+  
+    "oneOffExpenses": [],
+  
+    "estateGoal": 100000,
+    "deathBenefit": 50000,
+  
+    "hasSpouse": true,
+  
+    "spouseCurrentAge": 33,
+    "spouseLifeExpectancy": 90,
+  
+    "spouseEmploymentIncome": 50000,
+    "spouseEmploymentIncomeStartYear": 2024,
+    "spouseEmploymentIncomeEndYear": 2065,
+  
+    "spouseOtherIncomes": [
+      {
+        "startYear": 2030,
+        "endYear": 2031,
+        "amount": 100,
+        "description": "Spouse side hustle"
+      }
+    ],
+  
+    "spouseIsReceivingOAS": false,
+    "spouseOasStartAge": 65,
+    "spouseOasAnnualAmount": 8301,
+  
+    "spouseIsReceivingCPP": false,
+    "spouseCppStartAge": 65,
+    "spouseCppAnnualAmount": 12000,
+  
+    "spouseIsReceivingDB": false,
+    "spouseDbStartAge": 65,
+    "spouseDbAnnualAmount": 0,
+  
+    "spouseRegisteredAccounts": [
+      { "type": "RRSP", "amount": 5000 },
+      { "type": "TFSA", "amount": 10000 }
+    ],
+  
+    "spouseAnnualExpenses": 20000,
+    "spouseAnnualHealthcareExpenses": 2000,
+    "spouseUseStages": true,
+    "spouseStageOneExpenses": 20000,
+    "spouseStageOneHealthcare": 2000,
+    "spouseStageTwoExpenses": 15000,
+    "spouseStageTwoHealthcare": 3000,
+    "spouseStageThreeExpenses": 10000,
+    "spouseStageThreeHealthcare": 5000,
+  
+    "spouseOneOffExpenses": [
+      {
+        "year": 10,
+        "amount": 2500,
+        "description": "Spouse's one-time big expense"
+      }
+    ]
+  }
