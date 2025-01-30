@@ -238,3 +238,17 @@ const provincialTaxData: Record<
     ]
   }
 };
+
+export function calculateSplitTax(
+  householdIncome: number,
+  spouseIncomeSplit: number,
+  province: Province
+): number {
+  if (spouseIncomeSplit <= 0) {
+    return calculateTax(householdIncome, province);
+  }
+
+  const spousePortion = householdIncome * spouseIncomeSplit;
+  const primaryPortion = householdIncome - spousePortion;
+  return calculateTax(primaryPortion, province) + calculateTax(spousePortion, province);
+}

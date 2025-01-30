@@ -2,7 +2,7 @@
 
 import { Projection, OneOffExpense, Province } from './types'
 import { calculateOASClawback, findRequiredTotalWithdrawalThreeWay } from './utils'
-import { calculateTax } from './tax'
+import { calculateSplitTax } from './tax'
 
 export const ProjectionLogic = {
   createInitialProjection(
@@ -117,7 +117,8 @@ export const ProjectionLogic = {
     incomeRate: number,
     growthRate: number,
     rrspMaxMultiplier: number,
-    tfsaMaxMultiplier: number
+    tfsaMaxMultiplier: number,
+    spouseIncomeSplit: number
   ) {
     // Example: default base limits
     const BASE_RRSP_MAX = 30000;
@@ -191,7 +192,7 @@ export const ProjectionLogic = {
 
     // 1) initial tax on salary+investment
     const initialTaxableIncome = thisYear.salary + investmentIncome;
-    const initialTax = calculateTax(initialTaxableIncome, thisYear.province);
+    const initialTax = calculateSplitTax(initialTaxableIncome, spouseIncomeSplit, thisYear.province);
     const totalDebit = totalExpenses + initialTax;
 
     // 2) OAS Clawback
@@ -271,8 +272,9 @@ export const ProjectionLogic = {
       }
 
       const ordinaryIncome = thisYear.salary + fromRRSP + fromRRIF;
-      const totalTax = calculateTax(cgTaxable, thisYear.province)
-                     + calculateTax(ordinaryIncome, thisYear.province);
+      const totalTax =
+        calculateSplitTax(cgTaxable, spouseIncomeSplit, thisYear.province) +
+        calculateSplitTax(ordinaryIncome, spouseIncomeSplit, thisYear.province);
       const finalDebits = totalExpenses + totalTax;
       const finalCredits = (thisYear.salary + totalWithdrawal) + oasAfterClawback;
 
@@ -311,7 +313,8 @@ export const ProjectionLogic = {
     growthRate: number,
     lumpSumWithdrawal: number,
     rrspMaxMultiplier: number,
-    tfsaMaxMultiplier: number
+    tfsaMaxMultiplier: number,
+    spouseIncomeSplit: number
   ) {
     // Lump sum withdrawal in the first year if needed
     if (projection.length > 0 && lumpSumWithdrawal > 0) {
@@ -325,7 +328,7 @@ export const ProjectionLogic = {
         const realizedGain = withdrawalAmount - costBasisUsed;
         cgTaxable = realizedGain > 0 ? realizedGain * 0.5 : 0;
       }
-      const taxOnWithdrawal = calculateTax(cgTaxable, yearOne.province);
+      const taxOnWithdrawal = calculateSplitTax(cgTaxable, spouseIncomeSplit, yearOne.province);
 
       yearOne.debits += (withdrawalAmount + taxOnWithdrawal);
       yearOne.amountInvested -= withdrawalAmount;
@@ -344,7 +347,8 @@ export const ProjectionLogic = {
         incomeRate,
         growthRate,
         rrspMaxMultiplier,
-        tfsaMaxMultiplier
+        tfsaMaxMultiplier,
+        spouseIncomeSplit
       );
     }
 
@@ -357,7 +361,8 @@ export const ProjectionLogic = {
     growthRate: number,
     targetEstate: number,
     rrspMaxMultiplier: number,
-    tfsaMaxMultiplier: number
+    tfsaMaxMultiplier: number,
+    spouseIncomeSplit: number
   ) {
     // We'll do a binary search for the best lumpsum in year 1
     const initialYear = baseProjection[0];
@@ -385,7 +390,8 @@ export const ProjectionLogic = {
         growthRate,
         mid,
         rrspMaxMultiplier,
-        tfsaMaxMultiplier
+        tfsaMaxMultiplier,
+        spouseIncomeSplit
       );
 
       // Check if year-by-year balance is feasible

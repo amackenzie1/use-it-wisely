@@ -42,6 +42,7 @@ function computeRealRates(
 export interface CalculateProjectionResult {
   projection: Projection;
   maxWithdrawal: number;
+  spouseIncomeSplit: number;
 }
 
 export function calculateProjectionFromData(
@@ -142,13 +143,13 @@ export function calculateProjectionFromData(
   } = data;
 
   //
-  // 1) Determine the “household” life expectancy
+  // 1) Determine the "household" life expectancy
   //
   const householdLifeExpectancy = hasSpouse
     ? Math.max(lifeExpectancy, spouseLifeExpectancy)
     : lifeExpectancy;
 
-  // Also pick the "householdCurrentAge" (anchor on the primary user’s age)
+  // Also pick the "householdCurrentAge" (anchor on the primary user's age)
   const householdCurrentAge = currentAge;
   const calculationLifeExpectancy = Math.max(householdLifeExpectancy, householdCurrentAge + 1);
   const totalYears = calculationLifeExpectancy - householdCurrentAge;
@@ -158,25 +159,29 @@ export function calculateProjectionFromData(
   //
   const yearlyIncomes = new Array(totalYears + 1).fill(0);
 
-  // Primary’s employment
+  // Primary's employment
+  let totalPrimaryIncomeForRatio = 0;
   for (let yr = employmentIncomeStartYear; yr <= employmentIncomeEndYear; yr++) {
     const index = yr - startYear + 1;
     if (index > 0 && index <= totalYears) {
       yearlyIncomes[index] += employmentIncome;
+      totalPrimaryIncomeForRatio += employmentIncome;
     }
   }
 
-  // Spouse’s employment
+  // Spouse's employment
+  let totalSpouseIncomeForRatio = 0;
   if (hasSpouse) {
     for (let yr = spouseEmploymentIncomeStartYear; yr <= spouseEmploymentIncomeEndYear; yr++) {
       const index = yr - startYear + 1;
       if (index > 0 && index <= totalYears) {
         yearlyIncomes[index] += spouseEmploymentIncome;
+        totalSpouseIncomeForRatio += spouseEmploymentIncome;
       }
     }
   }
 
-  // Primary’s other incomes
+  // Primary's other incomes
   otherIncomes.forEach((inc) => {
     for (let yr = inc.startYear; yr <= inc.endYear; yr++) {
       const index = yr - startYear + 1;
@@ -186,7 +191,7 @@ export function calculateProjectionFromData(
     }
   });
 
-  // Spouse’s other incomes
+  // Spouse's other incomes
   if (hasSpouse) {
     spouseOtherIncomes.forEach((inc) => {
       for (let yr = inc.startYear; yr <= inc.endYear; yr++) {
@@ -202,7 +207,7 @@ export function calculateProjectionFromData(
   // 3) Add in CPP/QPP, DB, OAS for both
   //
 
-  // Primary’s CPP
+  // Primary's CPP
   if (isReceivingCPP) {
     // if isReceivingCPP is true from year 1, or else start at (cppStartAge - currentAge + 1)
     const start = (cppStartAge <= currentAge) ? 1 : (cppStartAge - currentAge + 1);
@@ -213,7 +218,7 @@ export function calculateProjectionFromData(
     }
   }
 
-  // Spouse’s CPP
+  // Spouse's CPP
   if (hasSpouse && spouseIsReceivingCPP) {
     const spouseStart = (spouseCppStartAge <= currentAge)
       ? 1
@@ -225,7 +230,7 @@ export function calculateProjectionFromData(
     }
   }
 
-  // Primary’s DB
+  // Primary's DB
   if (isReceivingDB) {
     const start = (dbStartAge <= currentAge) ? 1 : (dbStartAge - currentAge + 1);
     for (let y = start; y <= totalYears; y++) {
@@ -235,7 +240,7 @@ export function calculateProjectionFromData(
     }
   }
 
-  // Spouse’s DB
+  // Spouse's DB
   if (hasSpouse && spouseIsReceivingDB) {
     const spouseStart = (spouseDbStartAge <= currentAge)
       ? 1
@@ -247,20 +252,20 @@ export function calculateProjectionFromData(
     }
   }
 
-  // Primary’s OAS
+  // Primary's OAS
   let actualOasStartYear = (oasStartAge <= currentAge) ? 1 : (oasStartAge - currentAge + 1);
   // (We don't add OAS to `yearlyIncomes` directly because your logic uses a separate field in createInitialProjection
-  //  but if you do want to combine it, you can do so. We’ll pass `actualOasStartYear` to createInitialProjection.)
+  //  but if you do want to combine it, you can do so. We'll pass `actualOasStartYear` to createInitialProjection.)
 
-  // Spouse’s OAS
+  // Spouse's OAS
   let spouseOasYear = 0;
   if (hasSpouse && spouseIsReceivingOAS) {
     spouseOasYear = (spouseOasStartAge <= currentAge)
       ? 1
       : (spouseOasStartAge - currentAge + 1);
-    // The logic in createInitialProjection has only ONE “oasAnnualAmount.” 
+    // The logic in createInitialProjection has only ONE "oasAnnualAmount." 
     // If you want to do a quick hack, you can add them. Or you can add them to `yearlyIncomes`. 
-    // For demonstration, let's just “add” them to your main OAS approach. 
+    // For demonstration, let's just "add" them to your main OAS approach. 
     // There's no separate spouse OAS in your original code, so let's keep it simple 
     // by adding spouse OAS into the same pipeline.
 
@@ -274,7 +279,7 @@ export function calculateProjectionFromData(
   }
 
   //
-  // 4) Merge spouse’s expenses
+  // 4) Merge spouse's expenses
   //
   let combinedAnnualExpenses = annualExpenses;
   let combinedAnnualHealthcareExpenses = annualHealthcareExpenses;
@@ -303,7 +308,7 @@ export function calculateProjectionFromData(
   }
 
   //
-  // 6) Merge spouse’s registered accounts
+  // 6) Merge spouse's registered accounts
   //
   const allRegisteredAccounts = hasSpouse
     ? [...registeredAccounts, ...spouseRegisteredAccounts]
@@ -334,7 +339,7 @@ export function calculateProjectionFromData(
     initialRRSP,
     actualOasStartYear,
     oasAnnualAmount, // doesn't include spouse OAS in the default logic— 
-                     // we already added spouse’s OAS to 'yearlyIncomes' above
+                     // we already added spouse's OAS to 'yearlyIncomes' above
     initialTFSA,
     initialRRIF,
     initialLIRA,
@@ -353,7 +358,7 @@ export function calculateProjectionFromData(
   );
 
   //
-  // 8) Compute “real” income/growth rates
+  // 8) Compute "real" income/growth rates
   //
   const { realIncomeRate, realGrowthRate } = computeRealRates(
     specifyOwnRates,
@@ -364,7 +369,7 @@ export function calculateProjectionFromData(
   );
 
   //
-  // 9) If spouse is present, double the RRSP/TFSA “max” in the logic:
+  // 9) If spouse is present, double the RRSP/TFSA "max" in the logic:
   //
   const rrspMaxMultiplier = hasSpouse ? 2 : 1;
   const tfsaMaxMultiplier = hasSpouse ? 2 : 1;
@@ -375,7 +380,23 @@ export function calculateProjectionFromData(
   const targetEstate = Math.max(0, estateGoal - deathBenefit);
 
   //
-  // 11) Solve for max withdrawal
+  // 11) Calculate spouse income split
+  //
+  const totalHouseholdIncomeForRatio = totalPrimaryIncomeForRatio + totalSpouseIncomeForRatio;
+  var spouseIncomeSplit = hasSpouse && totalHouseholdIncomeForRatio > 0
+    ? totalSpouseIncomeForRatio / totalHouseholdIncomeForRatio
+    : 0;
+
+  // Apply bias towards 1
+  if (spouseIncomeSplit > 0.5) {
+    spouseIncomeSplit = Math.min(1, spouseIncomeSplit + 0.15);  // Add 0.2 but cap at 1
+  } else {
+    spouseIncomeSplit = Math.max(0, spouseIncomeSplit - 0.15);  // Subtract 0.2 but floor at 0
+  }
+  console.log("spouseIncomeSplit", spouseIncomeSplit);
+
+  //
+  // 12) Solve for max withdrawal
   //
   const { maxWithdrawal } = ProjectionLogic.findOptimalWithdrawal(
     baseProjection,
@@ -383,11 +404,12 @@ export function calculateProjectionFromData(
     realGrowthRate,
     targetEstate,
     rrspMaxMultiplier,
-    tfsaMaxMultiplier
+    tfsaMaxMultiplier,
+    spouseIncomeSplit
   );
 
   //
-  // 12) Compute final projection
+  // 13) Compute final projection
   //
   const finalProj = ProjectionLogic.calculateProjection(
     JSON.parse(JSON.stringify(baseProjection)), // deep clone
@@ -395,11 +417,13 @@ export function calculateProjectionFromData(
     realGrowthRate,
     maxWithdrawal,
     rrspMaxMultiplier,
-    tfsaMaxMultiplier
+    tfsaMaxMultiplier,
+    spouseIncomeSplit
   );
 
   return {
     projection: finalProj,
-    maxWithdrawal
+    maxWithdrawal,
+    spouseIncomeSplit
   };
 }
