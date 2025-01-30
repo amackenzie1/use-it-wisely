@@ -139,7 +139,10 @@ export function calculateProjectionFromData(
     spouseStageThreeExpenses = 0,
     spouseStageThreeHealthcare = 0,
 
-    spouseOneOffExpenses = []
+    spouseOneOffExpenses = [],
+
+    isDBIndexed = false,
+    spouseIsDBIndexed = false
   } = data;
 
   //
@@ -235,7 +238,12 @@ export function calculateProjectionFromData(
     const start = (dbStartAge <= currentAge) ? 1 : (dbStartAge - currentAge + 1);
     for (let y = start; y <= totalYears; y++) {
       if (y > 0 && y <= totalYears) {
-        yearlyIncomes[y] += dbAnnualAmount;
+        let adjustedAmount = dbAnnualAmount;
+        if (isDBIndexed) {
+          const yearsSinceStart = y - start;
+          adjustedAmount *= Math.pow(1 + (inflationRate / 100), yearsSinceStart);
+        }
+        yearlyIncomes[y] += adjustedAmount;
       }
     }
   }
@@ -247,7 +255,12 @@ export function calculateProjectionFromData(
       : (spouseDbStartAge - currentAge + 1);
     for (let y = spouseStart; y <= totalYears; y++) {
       if (y > 0 && y <= totalYears) {
-        yearlyIncomes[y] += spouseDbAnnualAmount;
+        let adjustedAmount = spouseDbAnnualAmount;
+        if (spouseIsDBIndexed) {
+          const yearsSinceStart = y - spouseStart;
+          adjustedAmount *= Math.pow(1 + (inflationRate / 100), yearsSinceStart);
+        }
+        yearlyIncomes[y] += adjustedAmount;
       }
     }
   }

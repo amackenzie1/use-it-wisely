@@ -46,10 +46,11 @@
     "cppStartAge": 65,
     "cppAnnualAmount": 15000,
   
-    "isReceivingDB": false,
+    "isReceivingDB": true,
     "dbStartAge": 65,
-    "dbAnnualAmount": 0,
-  
+    "dbAnnualAmount": 15000,
+    "isDBIndexed": true,
+ 
     "oneOffExpenses": [],
   
     "estateGoal": 0,

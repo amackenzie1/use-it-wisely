@@ -162,6 +162,7 @@ export interface CalculatorInputData {
   isReceivingDB: boolean;
   dbStartAge: number;
   dbAnnualAmount: number;
+  isDBIndexed: boolean;
 
   // One-off expenses
   oneOffExpenses: OneOffExpense[];
@@ -193,6 +194,7 @@ export interface CalculatorInputData {
   spouseIsReceivingDB?: boolean;
   spouseDbStartAge?: number;
   spouseDbAnnualAmount?: number;
+  spouseIsDBIndexed?: boolean;
 
   spouseRegisteredAccounts?: RegisteredAccount[];
 
