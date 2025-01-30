@@ -141,7 +141,7 @@ export const ProjectionLogic = {
 
       // Top up RRSP if age <= 71
       if (thisYear.age <= 71) {
-        const roomInRRSP = RRSP_MAX - thisYear.amountInRRSP;
+        const roomInRRSP = Math.max(0, RRSP_MAX - thisYear.amountInRRSP);
         const rrspContribution = Math.min(roomInRRSP, remainingProceeds);
         thisYear.amountInRRSP += rrspContribution;
         thisYear.rrspCostBasis += rrspContribution;
@@ -149,7 +149,7 @@ export const ProjectionLogic = {
       }
 
       // Top up TFSA
-      const roomInTFSA = TFSA_MAX - thisYear.amountInTFSA;
+      const roomInTFSA = Math.max(0, TFSA_MAX - thisYear.amountInTFSA);
       const tfsaContribution = Math.min(roomInTFSA, remainingProceeds);
       thisYear.amountInTFSA += tfsaContribution;
       remainingProceeds -= tfsaContribution;

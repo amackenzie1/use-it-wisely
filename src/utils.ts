@@ -1,5 +1,5 @@
 // utils.ts
-import { Province } from './data-types'
+import { Province } from './types'
 import { calculateTax } from './tax'
 
 export const OAS_CLAWBACK = {
