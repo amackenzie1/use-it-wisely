@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-// IMPORTANT: You must have these next two imports from your own files
 import { calculateProjectionFromData } from './PureCalculator'
 import { CalculatorInputData } from './types'
+import { convertUISchema } from './UISchemaConverter'
 
 // Recharts components:
 import {
@@ -17,6 +17,7 @@ import {
 
 const JSONCalculatorPage: React.FC = () => {
   const [jsonInput, setJsonInput] = useState('')
+  const [uiSchemaInput, setUISchemaInput] = useState('')
   const [projection, setProjection] = useState<any[]>([])
   const [maxWithdrawal, setMaxWithdrawal] = useState(0)
   const [error, setError] = useState('')
@@ -49,6 +50,11 @@ const JSONCalculatorPage: React.FC = () => {
     }
   }
 
+  const handleUISchema = () => {
+    const convertedJson = convertUISchema(uiSchemaInput)
+    setJsonInput(convertedJson)
+  }
+
   // Convert your projection rows into something Recharts can display
   const chartData = projection.map((row: any) => {
     const totalAssets =
@@ -75,6 +81,20 @@ const JSONCalculatorPage: React.FC = () => {
         <br />
         <button onClick={handleCompute}>Compute Projection</button>
         {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+      </div>
+
+      {/* NEW UI SCHEMA SECTION */}
+      <div style={{ width: '400px' }}>
+        <h2>Paste data from a UI schema</h2>
+        <textarea
+          rows={15}
+          cols={50}
+          value={uiSchemaInput}
+          onChange={(e) => setUISchemaInput(e.target.value)}
+          style={{ width: '100%' }}
+        />
+        <br />
+        <button onClick={handleUISchema}>Convert to Backend JSON</button>
       </div>
 
       {/* BOTTOM: Chart + Results */}
